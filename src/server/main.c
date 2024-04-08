@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
 // Structure to store data for each WebSocket session
 struct per_session_data {
 };
@@ -32,7 +31,7 @@ int main(int argc, char **argv) {
     // Create the WebSocket protocol
     static struct lws_protocols protocols[] = {
         {
-            "demo-protocol", // Protocol name, should match the WebSocket protocol in the frontend code
+            "wss", // Protocol name, should match the WebSocket protocol in the frontend code
             callback, // Callback function pointer
             sizeof(struct per_session_data), // Size of data for each session (connection)
             0, // No additional protocol parameters
@@ -44,7 +43,10 @@ int main(int argc, char **argv) {
     // Create the WebSocket context
     struct lws_context_creation_info info = {
         .port = 3001, // Listening port number
-        .protocols = protocols // Protocol list
+        .protocols = protocols, // Protocol list
+        .options = LWS_SERVER_OPTION_VALIDATE_UTF8 | LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT,
+        .ssl_cert_filepath = "../cert/server.crt",
+        .ssl_private_key_filepath = "../cert/server.key"
     };
     struct lws_context *context = lws_create_context(&info);
 
