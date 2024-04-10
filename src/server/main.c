@@ -42,13 +42,13 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
                 user->role = 1;
             } else if (user->role){
                 global_data.packet_id++;
-                sprintf(global_data.message, "%d: %s", global_data.packet_id, message);
+                sprintf(global_data.message, "%s", message);
                 lws_callback_on_writable_all_protocol(lws_get_context(wsi), lws_get_protocol(wsi));
             }
 
-            char formatted[50];
-            sprintf(formatted, "Received message(%d): %s\n",user->message_sent, message);
-            lwsl_hexdump_notice(formatted, strlen(formatted));
+            // char formatted[1024];
+            // sprintf(formatted, "Received message(%d): %s\n",user->message_sent, message);
+            // lwsl_hexdump_notice(formatted, strlen(formatted));
             user->message_sent++;
 
             break; 
@@ -60,11 +60,10 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
                 user->last_sent = global_data.packet_id;
             } else {           
                 time_t t = time(NULL);
-                char timestamp[20];
-                sprintf(timestamp, "%ld", t);
+                char timestamp[100];
+                sprintf(timestamp, "TIME___:%ld", t);
                 lws_write(wsi, timestamp, strlen(timestamp), LWS_WRITE_TEXT);
             }
-            //lws_callback_on_writable(wsi);
             break;
         
         case LWS_CALLBACK_CLOSED: // Handle close connection event

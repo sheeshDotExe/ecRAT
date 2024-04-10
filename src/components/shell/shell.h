@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 typedef struct Result {
     char* data;
     int size;

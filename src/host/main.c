@@ -19,6 +19,7 @@
  * the client connection bound to it
  */
 
+#define MAX_MESSAGE_SIZE 1024
 #define PASSWORD "PASSWORD"
 
 static struct my_conn {
@@ -27,6 +28,11 @@ static struct my_conn {
         uint16_t		retry_count; /* count of consequetive retries */
         int                     initial_send;
 } mco;
+
+struct GLOBAL_DATA {
+    int new_command;
+    char message[MAX_MESSAGE_SIZE];
+} global_data = {0};
 
 static struct lws_context *context;
 static int interrupted, port = 3001, ssl_connection = LCCSCF_USE_SSL;
@@ -113,12 +119,19 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
                         lws_write(wsi, password, strlen(password), LWS_WRITE_TEXT);
                         m->initial_send = 0;
                         break;
+                } else if (global_data.new_command){
+                        char command[1024];
+                        sprintf(command, "COMMAND:%s", global_data.message);
+                        lws_write(wsi, command, strlen(command), LWS_WRITE_TEXT);
+                        global_data.new_command = 0;
+                        break;
+                } else {       
+                        time_t t = time(NULL);
+                        char timestamp[100];
+                        sprintf(timestamp, "TIME___:%ld", t);
+                        lws_write(wsi, timestamp, strlen(timestamp), LWS_WRITE_TEXT);
+                        break;
                 }
-                time_t t = time(NULL);
-                char timestamp[20];
-                sprintf(timestamp, "%ld", t);
-                lws_write(wsi, timestamp, strlen(timestamp), LWS_WRITE_TEXT);
-                break;
 
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
                 m->initial_send = 1;
@@ -166,7 +179,10 @@ sigint_handler(int sig)
 }
 
 int main(int argc, const char **argv)
-{
+{       
+        global_data.new_command = 1;
+        memcpy(global_data.message, "whoami", 7);
+
         struct lws_context_creation_info info;
         const char *p;
         int n = 0;

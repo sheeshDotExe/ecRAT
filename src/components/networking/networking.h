@@ -1,0 +1,4 @@
+#ifndef NETWORKING_H
+#define NETWORKING_H
+#define PACKET_PREFIX_LENGTH 6
+#endif
