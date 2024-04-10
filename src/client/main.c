@@ -170,29 +170,9 @@ int main(int argc, const char **argv)
         info.port = CONTEXT_PORT_NO_LISTEN; /* we do not run any server */
         info.protocols = protocols;
 
-        if ((p = lws_cmdline_option(argc, argv, "--protocol")))
-                pro = p;
-
-        if ((p = lws_cmdline_option(argc, argv, "-s")))
-                server_address = p;
-
-        if ((p = lws_cmdline_option(argc, argv, "-p")))
-                port = atoi(p);
-
-        if (lws_cmdline_option(argc, argv, "-n"))
-                ssl_connection &= ~LCCSCF_USE_SSL;
-
-        if (lws_cmdline_option(argc, argv, "-j"))
-                ssl_connection |= LCCSCF_ALLOW_SELFSIGNED;
-
-        if (lws_cmdline_option(argc, argv, "-k"))
-                ssl_connection |= LCCSCF_ALLOW_INSECURE;
-
-        if (lws_cmdline_option(argc, argv, "-m"))
-                ssl_connection |= LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK;
-
-        if (lws_cmdline_option(argc, argv, "-e"))
-                ssl_connection |= LCCSCF_ALLOW_EXPIRED;
+        ssl_connection |= LCCSCF_ALLOW_SELFSIGNED;
+        ssl_connection |= LCCSCF_ALLOW_INSECURE;
+        ssl_connection |= LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK;
 
         info.fd_limit_per_thread = 1 + 1 + 1;
 

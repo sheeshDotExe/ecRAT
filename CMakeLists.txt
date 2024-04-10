@@ -9,12 +9,20 @@ add_executable(server ${SOURCES})
 file(GLOB SOURCES "src/client/*.c")
 add_executable(client ${SOURCES})
 
+file(GLOB SOURCES "src/host/*.c")
+add_executable(host ${SOURCES})
+
 target_link_libraries(server
     ${CMAKE_CURRENT_SOURCE_DIR}/libraries/libwebsockets/build/lib/libwebsockets.a
     ssl
     crypto)
 
 target_link_libraries(client
+    ${CMAKE_CURRENT_SOURCE_DIR}/libraries/libwebsockets/build/lib/libwebsockets.a
+    ssl
+    crypto)
+
+target_link_libraries(host
     ${CMAKE_CURRENT_SOURCE_DIR}/libraries/libwebsockets/build/lib/libwebsockets.a
     ssl
     crypto)

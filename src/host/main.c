@@ -19,10 +19,13 @@
  * the client connection bound to it
  */
 
+#define PASSWORD "PASSWORD"
+
 static struct my_conn {
         lws_sorted_usec_list_t	sul;	     /* schedule connection retry */
         struct lws		*wsi;	     /* related wsi if any */
         uint16_t		retry_count; /* count of consequetive retries */
+        int                     initial_send;
 } mco;
 
 static struct lws_context *context;
@@ -104,6 +107,13 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
                 break;
         
         case LWS_CALLBACK_CLIENT_WRITEABLE:
+                if (m->initial_send){
+                        char* password = (char*)malloc(strlen(PASSWORD)+1);
+                        memcpy(password, PASSWORD, strlen(PASSWORD)+1);
+                        lws_write(wsi, password, strlen(password), LWS_WRITE_TEXT);
+                        m->initial_send = 0;
+                        break;
+                }
                 time_t t = time(NULL);
                 char timestamp[20];
                 sprintf(timestamp, "%ld", t);
@@ -111,6 +121,7 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
                 break;
 
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
+                m->initial_send = 1;
                 lwsl_user("%s: established\n", __func__);
                 break;
 
@@ -144,7 +155,7 @@ do_retry:
 }
 
 static const struct lws_protocols protocols[] = {
-        { "lws-minimal-client", callback_minimal, 0, 0, 0, NULL, 0 },
+        { "lws-minimal-client", callback_minimal, sizeof(struct my_conn), 0, 0, NULL, 0 },
         LWS_PROTOCOL_LIST_TERM
 };
 
@@ -170,29 +181,9 @@ int main(int argc, const char **argv)
         info.port = CONTEXT_PORT_NO_LISTEN; /* we do not run any server */
         info.protocols = protocols;
 
-        if ((p = lws_cmdline_option(argc, argv, "--protocol")))
-                pro = p;
-
-        if ((p = lws_cmdline_option(argc, argv, "-s")))
-                server_address = p;
-
-        if ((p = lws_cmdline_option(argc, argv, "-p")))
-                port = atoi(p);
-
-        if (lws_cmdline_option(argc, argv, "-n"))
-                ssl_connection &= ~LCCSCF_USE_SSL;
-
-        if (lws_cmdline_option(argc, argv, "-j"))
-                ssl_connection |= LCCSCF_ALLOW_SELFSIGNED;
-
-        if (lws_cmdline_option(argc, argv, "-k"))
-                ssl_connection |= LCCSCF_ALLOW_INSECURE;
-
-        if (lws_cmdline_option(argc, argv, "-m"))
-                ssl_connection |= LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK;
-
-        if (lws_cmdline_option(argc, argv, "-e"))
-                ssl_connection |= LCCSCF_ALLOW_EXPIRED;
+        ssl_connection |= LCCSCF_ALLOW_SELFSIGNED;
+        ssl_connection |= LCCSCF_ALLOW_INSECURE;
+        ssl_connection |= LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK;
 
         info.fd_limit_per_thread = 1 + 1 + 1;
 

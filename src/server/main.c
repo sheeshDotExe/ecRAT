@@ -46,14 +46,16 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
                 lws_callback_on_writable_all_protocol(lws_get_context(wsi), lws_get_protocol(wsi));
             }
 
-            printf("Received message(%d): %s\n",user->message_sent, message);
+            char formatted[50];
+            sprintf(formatted, "Received message(%d): %s\n",user->message_sent, message);
+            lwsl_hexdump_notice(formatted, strlen(formatted));
             user->message_sent++;
 
             break; 
 
         case LWS_CALLBACK_SERVER_WRITEABLE: // Handle send data event
             // Send the timestamp
-            if (user->last_sent != global_data.packet_id) {
+            if (user->last_sent != global_data.packet_id && !user->role) {
                 lws_write(wsi, global_data.message, strlen(global_data.message), LWS_WRITE_TEXT);
                 user->last_sent = global_data.packet_id;
             } else {           
