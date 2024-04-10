@@ -86,6 +86,11 @@ connect_client(lws_sorted_usec_list_t *sul)
                 }
 }
 
+struct global_data {
+        Result latest_result;
+        int send_result;
+} global_data;
+
 static int
 callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
                  void *user, void *in, size_t len)
@@ -111,15 +116,26 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
                         Result result = run_shell_command(message + 8);
                         lwsl_user("Received command: %s\n", message);
                         lwsl_user("Result: %s\n", result.data);
+                        global_data.latest_result.data = result.data;
+                        global_data.latest_result.size = result.size;
+                        global_data.send_result = 1;
                 }
                 break;
         
         case LWS_CALLBACK_CLIENT_WRITEABLE:
-                time_t t = time(NULL);
-                char timestamp[100];
-                sprintf(timestamp, "TIME___:%ld", t);
-                lws_write(wsi, timestamp, strlen(timestamp), LWS_WRITE_TEXT);
-                break;
+                if (global_data.send_result == 1){
+                        char message[1024];
+                        sprintf(message, "RESULT_:%s", global_data.latest_result.data);
+                        lws_write(wsi, message, strlen(message), LWS_WRITE_TEXT);
+                        global_data.send_result = 0;
+                } else {
+                        time_t t = time(NULL);
+                        char timestamp[100];
+                        sprintf(timestamp, "TIME___:%ld", t);
+                        lws_write(wsi, timestamp, strlen(timestamp), LWS_WRITE_TEXT);
+                        break;
+                }
+
 
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
                 lwsl_user("%s: established\n", __func__);
@@ -166,7 +182,8 @@ sigint_handler(int sig)
 }
 
 int main(int argc, const char **argv)
-{
+{       
+        global_data.send_result = 0;
         struct lws_context_creation_info info;
         const char *p;
         int n = 0;

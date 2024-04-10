@@ -17,6 +17,8 @@ struct GLOBAL_DATA {
     int packet_id;
     int total_clients;
     char message[MAX_MESSAGE_SIZE];
+    int has_response;
+    char response[MAX_MESSAGE_SIZE];
 } global_data = {0};
 
 // Callback function for WebSocket server messages
@@ -46,9 +48,16 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
                 lws_callback_on_writable_all_protocol(lws_get_context(wsi), lws_get_protocol(wsi));
             }
 
-            // char formatted[1024];
-            // sprintf(formatted, "Received message(%d): %s\n",user->message_sent, message);
-            // lwsl_hexdump_notice(formatted, strlen(formatted));
+            char prefix[1024];
+            memcpy(prefix, message, 7);
+            if (strcmp(prefix, "RESULT_") == 0){
+                global_data.has_response = 1;
+                memcpy(global_data.response, message + 8, len - 8);
+            }
+
+            char formatted[1024];
+            sprintf(formatted, "Received message(%d): %s\n",user->message_sent, message);
+            lwsl_hexdump_notice(formatted, strlen(formatted));
             user->message_sent++;
 
             break; 
@@ -58,6 +67,9 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
             if (user->last_sent != global_data.packet_id && !user->role) {
                 lws_write(wsi, global_data.message, strlen(global_data.message), LWS_WRITE_TEXT);
                 user->last_sent = global_data.packet_id;
+            } else if (use->role && global_data.has_response) {
+                lws_write(wsi, global_data.response, strlen(global_data.response), LWS_WRITE_TEXT);
+                global_data.has_response = 0;
             } else {           
                 time_t t = time(NULL);
                 char timestamp[100];
@@ -77,6 +89,7 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
 int main(int argc, char **argv) {
     global_data.total_clients = 0;
     global_data.packet_id = 0;
+    global_data.has_response = 0;
     // Create the WebSocket protocol
     static struct lws_protocols protocols[] = {
         {
