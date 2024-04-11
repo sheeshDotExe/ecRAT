@@ -67,7 +67,7 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
             if (user->last_sent != global_data.packet_id && !user->role) {
                 lws_write(wsi, global_data.message, strlen(global_data.message), LWS_WRITE_TEXT);
                 user->last_sent = global_data.packet_id;
-            } else if (use->role && global_data.has_response) {
+            } else if (user->role && global_data.has_response) {
                 lws_write(wsi, global_data.response, strlen(global_data.response), LWS_WRITE_TEXT);
                 global_data.has_response = 0;
             } else {           
