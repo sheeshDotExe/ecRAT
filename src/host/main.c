@@ -99,7 +99,6 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
                  void *user, void *in, size_t len)
 {
         struct my_conn *m = (struct my_conn *)user;
-
         switch (reason) {
 
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
@@ -109,7 +108,18 @@ callback_minimal(struct lws *wsi, enum lws_callback_reasons reason,
                 break;
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
-                lwsl_hexdump_notice(in, len);
+                char message[1024];
+                memcpy(message, in, len);
+                message[len] = '\0';
+
+                char prefix[1024];
+                memcpy(prefix, message, 7);
+                if (strcmp(prefix, "ROLE___") == 0){
+                        lwsl_user("Role changed to %s\n", message+7);
+                } else if (strcmp(prefix, "RESULT_") == 0){
+                        lwsl_hexdump_notice(message, len);
+                        //lwsl_user("Result: %s\n", message+8);
+                }
                 break;
         
         case LWS_CALLBACK_CLIENT_WRITEABLE:

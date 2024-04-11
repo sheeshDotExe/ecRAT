@@ -9,6 +9,7 @@
 // Structure to store data for each WebSocket session
 struct per_session_data {
     int role;
+    int inform_role_change;
     int message_sent;
     int last_sent;
 };
@@ -27,6 +28,7 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
         case LWS_CALLBACK_ESTABLISHED: // Handle new connection event
             // Add a timer to send a timestamp every second
             user->role = 0;
+            user->inform_role_change = 0;
             user->message_sent = 0;
             user->last_sent = 0;
             global_data.total_clients++;
@@ -42,6 +44,7 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
 
             if (strcmp(message, "PASSWORD") == 0) {
                 user->role = 1;
+                user->inform_role_change = 1;
             } else if (user->role){
                 global_data.packet_id++;
                 sprintf(global_data.message, "%s", message);
@@ -52,19 +55,21 @@ int callback(struct lws *wsi, enum lws_callback_reasons reason, struct per_sessi
             memcpy(prefix, message, 7);
             if (strcmp(prefix, "RESULT_") == 0){
                 global_data.has_response = 1;
-                memcpy(global_data.response, message + 8, len - 8);
+                memcpy(global_data.response, message, len);
             }
 
-            char formatted[1024];
-            sprintf(formatted, "Received message(%d): %s\n",user->message_sent, message);
-            lwsl_hexdump_notice(formatted, strlen(formatted));
             user->message_sent++;
 
             break; 
 
         case LWS_CALLBACK_SERVER_WRITEABLE: // Handle send data event
             // Send the timestamp
-            if (user->last_sent != global_data.packet_id && !user->role) {
+            if (user->inform_role_change) {
+                char message[20];
+                sprintf(message, "ROLE___:%d", user->role);
+                lws_write(wsi, message, 9, LWS_WRITE_TEXT);
+                user->inform_role_change = 0;
+            } else if (user->last_sent != global_data.packet_id && !user->role) {
                 lws_write(wsi, global_data.message, strlen(global_data.message), LWS_WRITE_TEXT);
                 user->last_sent = global_data.packet_id;
             } else if (user->role && global_data.has_response) {
